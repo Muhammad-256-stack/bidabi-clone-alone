@@ -295,7 +295,7 @@ for epoch in range(NUM_EPOCHS):
 
         torch.save(
             model.state_dict(),
-            "best_model_resnet18_finetuned.pth"
+            "models/best_model_resnet18_finetuned.pth"
         )
         print("→ Nouveau meilleur modèle sauvegardé")
     else:
@@ -330,7 +330,7 @@ plt.show()
 
 
 # --- Évaluation sur le test ---
-model.load_state_dict(torch.load("best_model_resnet18_finetuned.pth"))
+model.load_state_dict(torch.load("models/best_model_resnet18_finetuned.pth"))
 model.eval()
 
 all_preds = []

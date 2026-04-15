@@ -1,0 +1,5 @@
+outs:
+- md5: 1f44961f212f532a1e7a3b256f2540c6
+  size: 44790667
+  hash: md5
+  path: best_model_resnet18_finetuned.pth
