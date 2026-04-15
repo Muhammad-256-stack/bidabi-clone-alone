@@ -2,7 +2,11 @@
 __pycache__/
 *.py[codz]
 *$py.class
-
+.venv/
+__pycache__/
+*.pyc
+data/raw/
+data/interim/
 # C extensions
 *.so
 

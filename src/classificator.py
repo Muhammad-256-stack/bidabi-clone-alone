@@ -1,5 +1,5 @@
 """
-Training pipeline for ResNet‑18 full fine‑tuning with MixUp, t‑SNE, UMAP,
+Training pipeline for ResNet-18 full fine-tuning with MixUp, t-SNE, UMAP,
 and extended evaluation metrics (confusion matrix, ROC, hardest samples).
 """
 
@@ -134,7 +134,7 @@ print(f"Train: {len(train_dataset)}, "
 # --- Modèle ResNet18 ---
 def create_resnet18(num_classes):
     """
-    Creates a ResNet‑18 model with full fine‑tuning and a custom classifier head.
+    Creates a ResNet-18 model with full fine-tuning and a custom classifier head.
 
     Parameters
     ----------
@@ -144,7 +144,7 @@ def create_resnet18(num_classes):
     Returns
     -------
     torch.nn.Module
-        Modified ResNet‑18 model.
+        Modified ResNet-18 model.
     """
     model = resnet18(weights="IMAGENET1K_V1")
 
@@ -161,7 +161,7 @@ def create_resnet18(num_classes):
 
 # --- Device ---
 device = torch.device(
-    'cuda:0' if torch.cuda.is_available() else 'cpu'
+    "cuda:0" if torch.cuda.is_available() else "cpu"
 )
 print("Utilisation de l'appareil:", device)
 
@@ -354,7 +354,7 @@ def evaluate_model(model, loader):
     preds : np.ndarray
         Predicted class indices.
     labels : np.ndarray
-        Ground‑truth labels.
+        Ground-truth labels.
     probs : np.ndarray
         Softmax probabilities for each class.
     """
@@ -480,13 +480,21 @@ def plot_roc_curves(labels, probs, classes):
     Parameters
     ----------
     labels : np.ndarray
-        Ground‑truth labels.
+        Ground-truth labels.
     probs : np.ndarray
         Softmax probabilities.
     classes : list of str
         Class names.
     """
-    y_bin = label_binarize(labels, classes=list(range(len(classes))))
+    n_classes = len(classes)
+
+    # Cas binaire : label_binarize renvoie souvent une seule colonne
+    if n_classes == 2:
+        y_bin = label_binarize(labels, classes=[0, 1])
+        if y_bin.shape[1] == 1:
+            y_bin = np.hstack([1 - y_bin, y_bin])
+    else:
+        y_bin = label_binarize(labels, classes=list(range(n_classes)))
 
     plt.figure(figsize=(10, 8))
     for i, cls in enumerate(classes):
@@ -500,7 +508,6 @@ def plot_roc_curves(labels, probs, classes):
     plt.title("ROC Curves (ResNet18 full FT + MixUp)")
     plt.legend()
     plt.show()
-
 
 plot_roc_curves(all_labels, all_probs, dataset.classes)
 
@@ -520,10 +527,6 @@ def compute_hardest_samples(model, loader, classes, top_k=12):
         Class names.
     top_k : int, optional
         Number of hardest samples to display.
-
-    Returns
-    -------
-    None
     """
     criterion_nr = nn.CrossEntropyLoss(reduction="none")
 
@@ -580,12 +583,12 @@ compute_hardest_samples(model, test_loader, dataset.classes)
 # --- Embeddings t-SNE & UMAP ---
 def extract_features(model, x):
     """
-    Extracts convolutional features from ResNet‑18 before the classifier.
+    Extracts convolutional features from ResNet-18 before the classifier.
 
     Parameters
     ----------
     model : torch.nn.Module
-        Trained ResNet‑18.
+        Trained ResNet-18.
     x : torch.Tensor
         Input batch.
 
@@ -625,18 +628,15 @@ labels_list = np.array(labels_list)
 
 
 # --- t-SNE ---
-tsne = TSNE(n_components=2, perplexity=30, learning_rate=200)
+# --- t-SNE ---
+tsne_perplexity = max(2, min(30, len(embeddings) - 1))
+
+tsne = TSNE(
+    n_components=2,
+    perplexity=tsne_perplexity,
+    learning_rate=200
+)
 tsne_emb = tsne.fit_transform(embeddings)
-
-plt.figure(figsize=(8, 6))
-for i, cls in enumerate(dataset.classes):
-    idx = labels_list == i
-    plt.scatter(tsne_emb[idx, 0], tsne_emb[idx, 1], label=cls, alpha=0.6)
-
-plt.legend()
-plt.title("t-SNE Embedding Visualization")
-plt.show()
-
 
 # --- UMAP ---
 if umap_available:
