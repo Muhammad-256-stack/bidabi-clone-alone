@@ -9,8 +9,8 @@ HEADERS = {"User-Agent": "MyAwesomeApp/1.0"}
 
 OUTPUT_DIR = "data/raw"
 
-CATEGORY = "milk"  # "bread", "milk", "champagnes", "butter"
-TARGET_COUNT = 20
+CATEGORIES = ["cheese", "sugar", "milk"]  # "bread", "milk", "champagnes", "butter"
+TARGET_COUNT = 10
 PAGE_SIZE = 20
 MAX_PAGES = 5
 
@@ -66,14 +66,14 @@ async def fetch_page(session, category, page, page_size, sem):
             async with session.get(API_URL, params=params) as resp:
                 if resp.status != 200:
                     text = await resp.text()
-                    print(f"⚠ Erreur API page {page} : status={resp.status}")
+                    print(f"⚠ Erreur API page {page} ({category}) : status={resp.status}")
                     print(text[:200])
                     return []
 
                 content_type = resp.headers.get("Content-Type", "")
                 if "application/json" not in content_type:
                     text = await resp.text()
-                    print(f"⚠ Réponse non JSON page {page} : {content_type}")
+                    print(f"⚠ Réponse non JSON page {page} ({category}) : {content_type}")
                     print(text[:200])
                     return []
 
@@ -81,7 +81,7 @@ async def fetch_page(session, category, page, page_size, sem):
                 return data.get("products", [])
 
         except Exception as e:
-            print(f"⚠ Erreur API page {page} :", e)
+            print(f"⚠ Erreur API page {page} ({category}) :", e)
             return []
 
 
@@ -133,11 +133,11 @@ async def scrape(category, target_count, page_size, max_pages):
         page = 1
 
         while len(valid_products) < target_count and page <= max_pages:
-            print(f"→ Téléchargement page {page}…")
+            print(f"→ Téléchargement page {page} pour {category}…")
 
             products = await fetch_page(session, category, page, page_size, sem_api)
             if not products:
-                print("Aucun produit trouvé sur cette page.")
+                print(f"Aucun produit trouvé sur cette page pour {category}.")
                 break
 
             for product in products:
@@ -183,13 +183,20 @@ def save_to_csv(filename, rows):
 # Entry point
 # -------------------------
 def main():
-    products = asyncio.run(scrape(CATEGORY, TARGET_COUNT, PAGE_SIZE, MAX_PAGES))
-    output_file = f"{OUTPUT_DIR}/metadata_{CATEGORY}_{TARGET_COUNT}.csv"
-    save_to_csv(output_file, products)
-    print(
-        f"✔ Fichier {output_file} créé. "
-        f"Produits valides collectés : {len(products)}"
-    )
+    for category in CATEGORIES:
+        print(f"\n=== Scraping catégorie : {category} ===")
+
+        products = asyncio.run(
+            scrape(category, TARGET_COUNT, PAGE_SIZE, MAX_PAGES)
+        )
+
+        output_file = f"{OUTPUT_DIR}/metadata_{category}_{TARGET_COUNT}.csv"
+        save_to_csv(output_file, products)
+
+        print(
+            f"✔ Fichier {output_file} créé. "
+            f"Produits valides collectés : {len(products)}"
+        )
 
 
 if __name__ == "__main__":
